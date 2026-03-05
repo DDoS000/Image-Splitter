@@ -1,0 +1,777 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Splitter (เหมือน PineTools)</title>
+    <style>
+        :root {
+            --primary-color: #007bff;
+            --bg-color: #1a2a4a;
+            --card-bg: #243b5c;
+            --text-color: #e8eef5;
+            --input-bg: #2d4a6f;
+            --border-color: #3d5a80;
+        }
+
+        body {
+            font-family: 'Sarabun', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .container {
+            background-color: var(--card-bg);
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            max-width: 800px;
+            width: 100%;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+            color: var(--text-color);
+        }
+
+        .section-label {
+            background: var(--input-bg);
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+            color: #9eb3d4;
+            margin-bottom: 12px;
+            display: inline-block;
+        }
+
+        .control-group {
+            margin-bottom: 20px;
+            padding-bottom: 20px;
+        }
+
+        .control-group:not(:last-of-type) {
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .control-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: var(--text-color);
+        }
+
+        input[type="file"], input[type="number"], select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            box-sizing: border-box;
+            background: var(--input-bg);
+            color: var(--text-color);
+        }
+
+        .option-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 8px;
+        }
+
+        .option-btn {
+            padding: 8px 16px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            background: var(--input-bg);
+            color: var(--text-color);
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        .option-btn:hover {
+            background: #3d5a80;
+        }
+
+        .option-btn.selected {
+            background: #2d4a6f;
+            border-color: #fff;
+            box-shadow: 0 0 0 1px #fff;
+        }
+
+        .radio-group {
+            display: flex;
+            gap: 15px;
+            margin-top: 5px;
+        }
+
+        .radio-group label {
+            font-weight: normal;
+            cursor: pointer;
+        }
+
+        .number-input-wrap {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .number-input-wrap input {
+            width: 80px;
+            flex-shrink: 0;
+        }
+
+        .number-input-wrap input[type="number"]::-webkit-inner-spin-button,
+        .number-input-wrap input[type="number"]::-webkit-outer-spin-button {
+            opacity: 1;
+        }
+
+        .checkbox-wrap {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .checkbox-wrap input[type="checkbox"] {
+            width: auto;
+            cursor: pointer;
+        }
+
+        .quality-wrap {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-top: 10px;
+        }
+
+        .quality-wrap input[type="range"] {
+            flex: 1;
+            min-width: 100px;
+        }
+
+        .quality-wrap input[type="number"] {
+            width: 60px;
+        }
+
+        .size-inputs {
+            display: flex;
+            gap: 20px;
+            margin-top: 10px;
+        }
+
+        .size-inputs > div input {
+            width: 100px;
+        }
+
+        .size-hint {
+            font-size: 12px;
+            color: #9eb3d4;
+            margin: 8px 0 0;
+        }
+
+        button {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            font-size: 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            width: 100%;
+            transition: background 0.3s;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        #preview-section {
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        .preview-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        .preview-list:empty {
+            display: none;
+        }
+
+        .preview-thumb {
+            position: relative;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .preview-thumb img {
+            max-width: 80px;
+            max-height: 80px;
+            display: block;
+            object-fit: cover;
+        }
+
+        .preview-thumb .preview-name {
+            font-size: 10px;
+            padding: 2px 4px;
+            background: var(--input-bg);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 80px;
+        }
+
+        .preview-count {
+            font-size: 12px;
+            color: #9eb3d4;
+            margin-top: 8px;
+        }
+
+        #results-area {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 20px;
+        }
+
+        .result-item {
+            border: 1px solid var(--border-color);
+            padding: 5px;
+            background: var(--input-bg);
+            text-align: center;
+        }
+
+        .result-item img {
+            max-width: 150px;
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        .result-group {
+            margin-bottom: 24px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .result-group:last-child {
+            border-bottom: none;
+        }
+
+        .result-group-title {
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #9eb3d4;
+        }
+
+        .result-group-items {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        .download-btn {
+            display: inline-block;
+            text-decoration: none;
+            background: #28a745;
+            color: white;
+            padding: 5px 10px;
+            font-size: 12px;
+            border-radius: 3px;
+        }
+
+        .download-btn:hover {
+            background: #218838;
+        }
+
+        .download-all-btn {
+            background: #17a2b8;
+            margin: 10px 0;
+        }
+
+        .download-all-btn:hover {
+            background: #138496;
+        }
+
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>เครื่องมือตัดรูปภาพ (Image Splitter)</h1>
+
+    <div class="control-group">
+        <label>เลือกรูปภาพที่ต้องการตัด (สามารถเลือกได้หลายไฟล์)</label>
+        <input type="file" id="imageInput" accept="image/*" multiple>
+        <div id="preview-section">
+            <div id="preview-list" class="preview-list"></div>
+        </div>
+    </div>
+
+    <!-- OPTIONS: How to split -->
+    <div class="control-group">
+        <span class="section-label">OPTIONS</span>
+        <label>How to split the image</label>
+        <div class="option-group" id="splitModeGroup">
+            <button type="button" class="option-btn selected" data-mode="vertically">Vertically</button>
+            <button type="button" class="option-btn" data-mode="horizontally">Horizontally</button>
+            <button type="button" class="option-btn" data-mode="both">Both (grid)</button>
+        </div>
+    </div>
+
+    <!-- VERTICALLY section -->
+    <div class="control-group" id="section-vertically">
+        <span class="section-label">VERTICALLY</span>
+        <label>Split by...</label>
+        <div class="option-group" id="verticalSplitByGroup">
+            <button type="button" class="option-btn selected" data-by="quantity">Quantity of blocks (equal height)</button>
+            <button type="button" class="option-btn" data-by="height">Height of blocks</button>
+        </div>
+        <div id="verticalQuantityWrap">
+            <label>Quantity of blocks</label>
+            <div class="number-input-wrap">
+                <input type="number" id="quantity-x" value="4" min="1">
+            </div>
+        </div>
+        <div id="verticalHeightWrap" class="hidden">
+            <label>Height of blocks (px)</label>
+            <div class="number-input-wrap">
+                <input type="number" id="block-height" value="100" min="1">
+            </div>
+        </div>
+        <div class="checkbox-wrap">
+            <input type="checkbox" id="overlapEnabled" checked>
+            <label for="overlapEnabled" style="margin:0">Overlap blocks</label>
+        </div>
+        <div id="overlapWrap">
+            <label>Overlapping (px)</label>
+            <div class="number-input-wrap">
+                <input type="number" id="overlapPx" value="25" min="0">
+            </div>
+        </div>
+    </div>
+
+    <!-- HORIZONTALLY section (shown when horizontally or both) -->
+    <div class="control-group hidden" id="section-horizontally">
+        <span class="section-label">HORIZONTALLY</span>
+        <label>Split by...</label>
+        <div class="option-group" id="horizontalSplitByGroup">
+            <button type="button" class="option-btn selected" data-by="quantity">Quantity of blocks (equal width)</button>
+            <button type="button" class="option-btn" data-by="width">Width of blocks</button>
+        </div>
+        <div id="horizontalQuantityWrap">
+            <label>Quantity of blocks</label>
+            <div class="number-input-wrap">
+                <input type="number" id="quantity-y" value="2" min="1">
+            </div>
+        </div>
+        <div id="horizontalWidthWrap" class="hidden">
+            <label>Width of blocks (px)</label>
+            <div class="number-input-wrap">
+                <input type="number" id="block-width" value="100" min="1">
+            </div>
+        </div>
+        <div class="checkbox-wrap" id="overlapEnabledH">
+            <input type="checkbox" id="overlapEnabledHCheck" checked>
+            <label for="overlapEnabledHCheck" style="margin:0">Overlap blocks</label>
+        </div>
+        <div id="overlapWrapH">
+            <label>Overlapping (px)</label>
+            <div class="number-input-wrap">
+                <input type="number" id="overlapPxH" value="25" min="0">
+            </div>
+        </div>
+    </div>
+
+    <!-- OUTPUT IMAGES FORMAT -->
+    <div class="control-group">
+        <span class="section-label">OUTPUT IMAGES FORMAT</span>
+        <label>Format (only those supported by your browser are shown)</label>
+        <div class="option-group" id="formatGroup">
+            <button type="button" class="option-btn selected" data-format="same">Same as input</button>
+            <button type="button" class="option-btn" data-format="png">PNG</button>
+            <button type="button" class="option-btn" data-format="jpeg">JPG/JPEG</button>
+            <button type="button" class="option-btn" data-format="webp">WEBP</button>
+        </div>
+        <label>Image quality (better quality implies greater file size)</label>
+        <div class="quality-wrap">
+            <input type="range" id="qualityRange" min="1" max="100" value="92">
+            <input type="number" id="qualityValue" value="92" min="1" max="100">
+        </div>
+    </div>
+
+    <!-- OUTPUT SIZE -->
+    <div class="control-group">
+        <span class="section-label">OUTPUT SIZE</span>
+        <label>ขนาดรูปผลลัพธ์ (Output dimensions)</label>
+        <div class="option-group" id="outputSizeGroup">
+            <button type="button" class="option-btn selected" data-size="original">Original size</button>
+            <button type="button" class="option-btn" data-size="custom">Custom size</button>
+        </div>
+        <div id="outputSizeCustomWrap" class="hidden">
+            <div class="size-inputs">
+                <div>
+                    <label>Width (px)</label>
+                    <input type="number" id="outputWidth" value="512" min="1" placeholder="auto">
+                </div>
+                <div>
+                    <label>Height (px)</label>
+                    <input type="number" id="outputHeight" value="512" min="1" placeholder="auto">
+                </div>
+            </div>
+            <p class="size-hint">Width only = scale by width. Height only = scale by height. Both = fit within (keep aspect ratio).</p>
+        </div>
+    </div>
+
+    <button id="splitBtn">Split images</button>
+
+    <div id="results-area"></div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script>
+    // Elements
+    const imageInput = document.getElementById('imageInput');
+    const previewList = document.getElementById('preview-list');
+    const splitBtn = document.getElementById('splitBtn');
+    const resultsArea = document.getElementById('results-area');
+    const sectionVertically = document.getElementById('section-vertically');
+    const sectionHorizontally = document.getElementById('section-horizontally');
+
+    /** @type {{ file: File, name: string, image: HTMLImageElement, type: string }[]} */
+    let uploadedImages = [];
+    let inputFileType = 'image/png';
+
+    // Generic option button group handler
+    function initOptionGroup(containerId, callback) {
+        const container = document.getElementById(containerId);
+        if (!container) return;
+        container.querySelectorAll('.option-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                container.querySelectorAll('.option-btn').forEach(b => b.classList.remove('selected'));
+                this.classList.add('selected');
+                callback(this.dataset);
+            });
+        });
+    }
+
+    // 1. Multi-file image upload and preview
+    imageInput.addEventListener('change', function(e) {
+        const files = Array.from(e.target.files || []);
+        if (files.length === 0) return;
+
+        uploadedImages = [];
+        previewList.innerHTML = '';
+
+        files.forEach((file) => {
+            if (!file.type.startsWith('image/')) return;
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                const img = new Image();
+                img.onload = function() {
+                    const baseName = file.name.replace(/\.[^.]+$/, '');
+                    uploadedImages.push({
+                        file,
+                        name: baseName,
+                        image: img,
+                        type: file.type || 'image/png'
+                    });
+                    const thumb = document.createElement('div');
+                    thumb.className = 'preview-thumb';
+                    thumb.innerHTML = '<img src="' + event.target.result + '" alt=""><span class="preview-name">' +
+                        (baseName.length > 12 ? baseName.slice(0, 10) + '..' : baseName) + '</span>';
+                    previewList.appendChild(thumb);
+                    if (uploadedImages.length === 1) inputFileType = file.type || 'image/png';
+                };
+                img.src = event.target.result;
+            };
+            reader.readAsDataURL(file);
+        });
+    });
+
+    // 2. Split mode: Vertically, Horizontally, Both
+    let currentSplitMode = 'vertically';
+    initOptionGroup('splitModeGroup', (data) => {
+        currentSplitMode = data.mode;
+        sectionVertically.classList.toggle('hidden', data.mode === 'horizontally');
+        sectionHorizontally.classList.toggle('hidden', data.mode === 'vertically');
+    });
+
+    // 3. Vertical split by: quantity vs height
+    const verticalQuantityWrap = document.getElementById('verticalQuantityWrap');
+    const verticalHeightWrap = document.getElementById('verticalHeightWrap');
+    initOptionGroup('verticalSplitByGroup', (data) => {
+        verticalQuantityWrap.classList.toggle('hidden', data.by === 'height');
+        verticalHeightWrap.classList.toggle('hidden', data.by !== 'height');
+    });
+
+    // 4. Horizontal split by: quantity vs width
+    const horizontalQuantityWrap = document.getElementById('horizontalQuantityWrap');
+    const horizontalWidthWrap = document.getElementById('horizontalWidthWrap');
+    initOptionGroup('horizontalSplitByGroup', (data) => {
+        horizontalQuantityWrap.classList.toggle('hidden', data.by === 'width');
+        horizontalWidthWrap.classList.toggle('hidden', data.by !== 'width');
+    });
+
+    // 5. Output format
+    let currentFormat = 'same';
+    initOptionGroup('formatGroup', (data) => { currentFormat = data.format; });
+
+    // 5b. Output size: original vs custom
+    const outputSizeCustomWrap = document.getElementById('outputSizeCustomWrap');
+    initOptionGroup('outputSizeGroup', (data) => {
+        outputSizeCustomWrap.classList.toggle('hidden', data.size !== 'custom');
+    });
+
+    // 6. Quality sync (range <-> number)
+    const qualityRange = document.getElementById('qualityRange');
+    const qualityValue = document.getElementById('qualityValue');
+    qualityRange.addEventListener('input', () => { qualityValue.value = qualityRange.value; });
+    qualityValue.addEventListener('input', () => {
+        let v = Math.min(100, Math.max(1, parseInt(qualityValue.value) || 92));
+        qualityRange.value = qualityValue.value = v;
+    });
+
+    /**
+     * Resolve output MIME type and extension from format selection.
+     * @param {string} [fileType] - MIME type of source file (for "same as input")
+     * @returns {{ mime: string, ext: string, quality?: number }}
+     */
+    function getOutputFormat(fileType) {
+        const quality = parseInt(qualityValue.value) || 92;
+        const srcType = fileType || inputFileType;
+        if (currentFormat === 'same') {
+            if (srcType.includes('jpeg') || srcType.includes('jpg'))
+                return { mime: 'image/jpeg', ext: 'jpg', quality };
+            if (srcType.includes('webp')) return { mime: 'image/webp', ext: 'webp', quality };
+            return { mime: 'image/png', ext: 'png', quality: undefined };
+        }
+        if (currentFormat === 'png') return { mime: 'image/png', ext: 'png', quality: undefined };
+        if (currentFormat === 'jpeg') return { mime: 'image/jpeg', ext: 'jpg', quality };
+        if (currentFormat === 'webp') return { mime: 'image/webp', ext: 'webp', quality };
+        return { mime: 'image/png', ext: 'png', quality: undefined };
+    }
+
+    /**
+     * Compute vertical block positions (rows, with optional overlap).
+     * Returns array of { startY, height } for each block.
+     */
+    function computeVerticalBlocks(imgH) {
+        const byHeight = document.querySelector('#verticalSplitByGroup .option-btn[data-by="height"]').classList.contains('selected');
+        const overlapEnabled = document.getElementById('overlapEnabled').checked;
+        const overlap = overlapEnabled ? Math.max(0, parseInt(document.getElementById('overlapPx').value) || 0) : 0;
+
+        let blocks = [];
+        if (byHeight) {
+            const blockH = Math.max(1, parseInt(document.getElementById('block-height').value) || 100);
+            let y = 0;
+            while (y < imgH) {
+                const nextY = Math.min(y + blockH, imgH);
+                blocks.push({ startY: y, height: nextY - y });
+                y = nextY - (overlap > 0 ? overlap : 0);
+                if (y >= imgH) break;
+            }
+        } else {
+            const qty = Math.max(1, parseInt(document.getElementById('quantity-x').value) || 4);
+            const blockH = (imgH + overlap * (qty - 1)) / qty;
+            const step = blockH - overlap;
+            for (let i = 0; i < qty; i++) {
+                const startY = i * step;
+                const endY = Math.min(startY + blockH, imgH);
+                blocks.push({ startY, height: endY - startY });
+            }
+        }
+        return blocks;
+    }
+
+    /**
+     * Compute horizontal block positions (columns, with optional overlap).
+     */
+    function computeHorizontalBlocks(imgW) {
+        const byWidth = document.querySelector('#horizontalSplitByGroup .option-btn[data-by="width"]').classList.contains('selected');
+        const overlapEl = currentSplitMode === 'both' ? document.getElementById('overlapPx') : document.getElementById('overlapPxH');
+        const overlapCheckEl = currentSplitMode === 'both' ? document.getElementById('overlapEnabled') : document.getElementById('overlapEnabledHCheck');
+        const overlap = overlapCheckEl && overlapCheckEl.checked ? Math.max(0, parseInt(overlapEl.value) || 0) : 0;
+
+        let blocks = [];
+        if (byWidth) {
+            const blockW = Math.max(1, parseInt(document.getElementById('block-width').value) || 100);
+            let x = 0;
+            while (x < imgW) {
+                const nextX = Math.min(x + blockW, imgW);
+                blocks.push({ startX: x, width: nextX - x });
+                x = nextX - (overlap > 0 ? overlap : 0);
+                if (x >= imgW) break;
+            }
+        } else {
+            const qty = Math.max(1, parseInt(document.getElementById('quantity-y').value) || 2);
+            const blockW = (imgW + overlap * (qty - 1)) / qty;
+            const step = blockW - overlap;
+            for (let i = 0; i < qty; i++) {
+                const startX = i * step;
+                const endX = Math.min(startX + blockW, imgW);
+                blocks.push({ startX, width: endX - startX });
+            }
+        }
+        return blocks;
+    }
+
+    /**
+     * Compute output dimensions from custom size settings.
+     * @param {number} srcW - Source width
+     * @param {number} srcH - Source height
+     * @returns {{ outW: number, outH: number }}
+     */
+    function getOutputDimensions(srcW, srcH) {
+        const useCustom = document.querySelector('#outputSizeGroup .option-btn[data-size="custom"]').classList.contains('selected');
+        if (!useCustom) return { outW: srcW, outH: srcH };
+
+        const w = parseInt(document.getElementById('outputWidth').value, 10);
+        const h = parseInt(document.getElementById('outputHeight').value, 10);
+        const hasW = !isNaN(w) && w > 0;
+        const hasH = !isNaN(h) && h > 0;
+
+        if (hasW && hasH) {
+            const scale = Math.min(w / srcW, h / srcH);
+            return { outW: Math.round(srcW * scale), outH: Math.round(srcH * scale) };
+        }
+        if (hasW) return { outW: w, outH: Math.round(srcH * (w / srcW)) };
+        if (hasH) return { outW: Math.round(srcW * (h / srcH)), outH: h };
+        return { outW: srcW, outH: srcH };
+    }
+
+    /**
+     * Split a single image and return array of { dataUrl, filename }.
+     */
+    function splitSingleImage(img, baseName, fileType) {
+        const imgW = img.width;
+        const imgH = img.height;
+        const fmt = getOutputFormat(fileType);
+        let verticalBlocks = [{ startY: 0, height: imgH }];
+        let horizontalBlocks = [{ startX: 0, width: imgW }];
+
+        if (currentSplitMode === 'vertically' || currentSplitMode === 'both') {
+            verticalBlocks = computeVerticalBlocks(imgH);
+        }
+        if (currentSplitMode === 'horizontally' || currentSplitMode === 'both') {
+            horizontalBlocks = computeHorizontalBlocks(imgW);
+        }
+
+        const results = [];
+        for (let vy = 0; vy < verticalBlocks.length; vy++) {
+            for (let hx = 0; hx < horizontalBlocks.length; hx++) {
+                const vb = verticalBlocks[vy];
+                const hb = horizontalBlocks[hx];
+                const { outW, outH } = getOutputDimensions(hb.width, vb.height);
+
+                const canvas = document.createElement('canvas');
+                canvas.width = outW;
+                canvas.height = outH;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, hb.startX, vb.startY, hb.width, vb.height, 0, 0, outW, outH);
+                const dataUrl = fmt.quality !== undefined
+                    ? canvas.toDataURL(fmt.mime, fmt.quality / 100)
+                    : canvas.toDataURL(fmt.mime);
+                const filename = `${baseName}_${vy}_${hx}.${fmt.ext}`;
+                results.push({ dataUrl, filename });
+            }
+        }
+        return results;
+    }
+
+    // 7. Main split logic - process all uploaded images
+    splitBtn.addEventListener('click', function() {
+        if (uploadedImages.length === 0) {
+            alert('Please select one or more images first.');
+            return;
+        }
+
+        resultsArea.innerHTML = '';
+        const allResults = []; // { baseName, items: [{ dataUrl, filename }] }
+
+        uploadedImages.forEach(({ image, name, type }) => {
+            const items = splitSingleImage(image, name, type);
+            allResults.push({ baseName: name, items });
+        });
+
+        // Render UI: grouped by source image
+        allResults.forEach(({ baseName, items }) => {
+            const groupDiv = document.createElement('div');
+            groupDiv.className = 'result-group';
+            groupDiv.innerHTML = '<div class="result-group-title">' + baseName + ' (' + items.length + ' files)</div><div class="result-group-items"></div>';
+            const itemsContainer = groupDiv.querySelector('.result-group-items');
+            items.forEach(({ dataUrl, filename }) => {
+                itemsContainer.appendChild(createResultElement(dataUrl, filename));
+            });
+            resultsArea.appendChild(groupDiv);
+        });
+
+        // Add "Download all as ZIP" button
+        const totalFiles = allResults.reduce((sum, r) => sum + r.items.length, 0);
+        if (totalFiles > 1 && typeof JSZip !== 'undefined') {
+            const zipBtn = document.createElement('button');
+            zipBtn.className = 'download-all-btn';
+            zipBtn.type = 'button';
+            zipBtn.textContent = 'Download all as ZIP (' + totalFiles + ' files)';
+            zipBtn.addEventListener('click', async function() {
+                zipBtn.disabled = true;
+                zipBtn.textContent = 'Creating ZIP...';
+                try {
+                    const zip = new JSZip();
+                    allResults.forEach(({ baseName, items }) => {
+                        const folder = zip.folder(baseName);
+                        items.forEach(({ dataUrl, filename }) => {
+                            const base64 = dataUrl.split(',')[1];
+                            folder.file(filename, base64, { base64: true });
+                        });
+                    });
+                    const blob = await zip.generateAsync({ type: 'blob' });
+                    const a = document.createElement('a');
+                    a.href = URL.createObjectURL(blob);
+                    a.download = 'split_images.zip';
+                    a.click();
+                    URL.revokeObjectURL(a.href);
+                } catch (err) {
+                    alert('Failed to create ZIP: ' + err.message);
+                }
+                zipBtn.disabled = false;
+                zipBtn.textContent = 'Download all as ZIP (' + totalFiles + ' files)';
+            });
+            resultsArea.insertBefore(zipBtn, resultsArea.firstChild);
+        }
+    });
+
+    function createResultElement(dataUrl, filename) {
+        const div = document.createElement('div');
+        div.className = 'result-item';
+        const img = document.createElement('img');
+        img.src = dataUrl;
+        const link = document.createElement('a');
+        link.href = dataUrl;
+        link.download = filename;
+        link.innerText = 'Download';
+        link.className = 'download-btn';
+        div.appendChild(img);
+        div.appendChild(link);
+        return div;
+    }
+</script>
+
+</body>
+</html>
