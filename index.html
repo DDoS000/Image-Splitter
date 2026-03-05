@@ -442,9 +442,31 @@
     <button id="splitBtn">Split images</button>
 
     <div id="results-area"></div>
+
+    <!-- EXPORT TO WORD (shown after split) -->
+    <div class="control-group" id="wordExportSection">
+        <span class="section-label">EXPORT TO WORD</span>
+        <p class="size-hint">Export split results to .docx (run Split first)</p>
+        <label>Page size preset</label>
+        <div class="option-group" id="wordPagePresetGroup">
+            <button type="button" class="option-btn selected" data-preset="a4">A4</button>
+            <button type="button" class="option-btn" data-preset="letter">Letter</button>
+            <button type="button" class="option-btn" data-preset="a3">A3</button>
+            <button type="button" class="option-btn" data-preset="legal">Legal</button>
+        </div>
+        <label>Image fit</label>
+        <div class="option-group" id="wordImageFitGroup">
+            <button type="button" class="option-btn selected" data-fit="fullwidth">Full page width</button>
+            <button type="button" class="option-btn" data-fit="fullpage">Fit to page</button>
+            <button type="button" class="option-btn" data-fit="original">Original size</button>
+        </div>
+        <button type="button" id="exportWordBtn" class="download-all-btn">Export to Word (.docx)</button>
+    </div>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://unpkg.com/docx@7.8.2/build/index.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
 <script>
     // Elements
     const imageInput = document.getElementById('imageInput');
@@ -689,11 +711,20 @@
                     ? canvas.toDataURL(fmt.mime, fmt.quality / 100)
                     : canvas.toDataURL(fmt.mime);
                 const filename = `${baseName}_${vy}_${hx}.${fmt.ext}`;
-                results.push({ dataUrl, filename });
+                results.push({ dataUrl, filename, width: outW, height: outH });
             }
         }
         return results;
     }
+
+    // Store last split results for Word export
+    let lastSplitResults = [];
+
+    // Word export options
+    let wordPagePreset = 'a4';
+    let wordImageFit = 'fullwidth';
+    initOptionGroup('wordPagePresetGroup', (data) => { wordPagePreset = data.preset; });
+    initOptionGroup('wordImageFitGroup', (data) => { wordImageFit = data.fit; });
 
     // 7. Main split logic - process all uploaded images
     splitBtn.addEventListener('click', function() {
@@ -709,6 +740,7 @@
             const items = splitSingleImage(image, name, type);
             allResults.push({ baseName: name, items });
         });
+        lastSplitResults = allResults;
 
         // Render UI: grouped by source image
         allResults.forEach(({ baseName, items }) => {
@@ -771,6 +803,132 @@
         div.appendChild(link);
         return div;
     }
+
+    /**
+     * Page presets: width/height in twips (1" = 1440). Margins 1" = 1440.
+     * Usable area for image fit calculations.
+     */
+    const PAGE_PRESETS = {
+        a4: { width: 11906, height: 16838, margin: 1440 },
+        letter: { width: 12240, height: 15840, margin: 1440 },
+        a3: { width: 16838, height: 23811, margin: 1440 },
+        legal: { width: 12240, height: 20160, margin: 1440 }
+    };
+
+    /** Convert twips to pixels (1" = 1440 twips = 96 px) */
+    function twipToPx(twip) { return (twip * 96) / 1440; }
+
+    /** Base64 to Uint8Array - docx ImageRun accepts Uint8Array */
+    function base64ToBytes(base64) {
+        const bin = atob(base64);
+        const arr = new Uint8Array(bin.length);
+        for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+        return arr;
+    }
+
+    async function exportToWord() {
+        if (lastSplitResults.length === 0) {
+            alert('Please split images first.');
+            return;
+        }
+        if (typeof docx === 'undefined') {
+            alert('Word export library not loaded. Check your connection.');
+            return;
+        }
+
+        const btn = document.getElementById('exportWordBtn');
+        btn.disabled = true;
+        btn.textContent = 'Creating Word document...';
+
+        try {
+            const preset = PAGE_PRESETS[wordPagePreset] || PAGE_PRESETS.a4;
+            const usableWTwip = preset.width - preset.margin * 2;
+            const usableHTwip = preset.height - preset.margin * 2;
+            const usableWPx = twipToPx(usableWTwip);
+            const usableHPx = twipToPx(usableHTwip);
+
+            const children = [];
+            for (const { baseName, items } of lastSplitResults) {
+                children.push(new docx.Paragraph({
+                    children: [new docx.TextRun({ text: baseName, bold: true })],
+                    spacing: { after: 200 }
+                }));
+                for (const { dataUrl, width, height } of items) {
+                    let outW, outH;
+                    const wPx = Math.max(1, width || 1);
+                    const hPx = Math.max(1, height || 1);
+                    if (wordImageFit === 'original') {
+                        outW = wPx;
+                        outH = hPx;
+                    } else if (wordImageFit === 'fullpage') {
+                        const scale = Math.min(usableWPx / wPx, usableHPx / hPx);
+                        outW = Math.round(wPx * scale);
+                        outH = Math.round(hPx * scale);
+                    } else {
+                        const scale = usableWPx / wPx;
+                        outW = Math.round(usableWPx);
+                        outH = Math.round(hPx * scale);
+                    }
+                    outW = Math.max(1, outW);
+                    outH = Math.max(1, outH);
+
+                    let imgType = 'png';
+                    let exportDataUrl = dataUrl;
+                    if (dataUrl.includes('jpeg') || dataUrl.includes('jpg')) imgType = 'jpg';
+                    else if (dataUrl.includes('webp')) {
+                        imgType = 'png';
+                        exportDataUrl = await new Promise((res, rej) => {
+                            const img = new Image();
+                            img.onload = () => {
+                                const c = document.createElement('canvas');
+                                c.width = img.width;
+                                c.height = img.height;
+                                c.getContext('2d').drawImage(img, 0, 0);
+                                res(c.toDataURL('image/png'));
+                            };
+                            img.onerror = () => rej(new Error('WebP load failed'));
+                            img.src = dataUrl;
+                        });
+                    } else if (dataUrl.includes('png')) imgType = 'png';
+
+                    const base64 = exportDataUrl.replace(/^data:image\/\w+;base64,/, '');
+                    const imageBytes = base64ToBytes(base64);
+                    children.push(new docx.Paragraph({
+                        children: [
+                            new docx.ImageRun({
+                                data: imageBytes,
+                                transformation: { width: outW, height: outH },
+                                type: imgType
+                            })
+                        ],
+                        spacing: { after: 200 }
+                    }));
+                }
+            }
+
+            const doc = new docx.Document({
+                sections: [{
+                    properties: {
+                        page: {
+                            margin: { top: preset.margin, right: preset.margin, bottom: preset.margin, left: preset.margin },
+                            width: preset.width,
+                            height: preset.height
+                        }
+                    },
+                    children
+                }]
+            });
+
+            const blob = await docx.Packer.toBlob(doc);
+            saveAs(blob, 'split_images.docx');
+        } catch (err) {
+            alert('Export failed: ' + err.message);
+        }
+        btn.disabled = false;
+        btn.textContent = 'Export to Word (.docx)';
+    }
+
+    document.getElementById('exportWordBtn').onclick = exportToWord;
 </script>
 
 </body>
